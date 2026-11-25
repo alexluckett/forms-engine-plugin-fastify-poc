@@ -1,6 +1,9 @@
-# Forms engine on Fastify and Zod (proof of concept)
+# Forms engine on Fastify and Zod (draft proof of concept)
 
-This repository shows the Defra forms engine as a [Fastify](https://fastify.dev) plugin in which every schema is a [Zod](https://zod.dev) schema and every type for validated data comes from that schema. It is a proof of concept for discussion, not a release, and the package is marked `private`.
+> [!WARNING]
+> This is a **draft proof of concept**. It is not the production forms engine and must not be used to run live forms. A significant amount of the production engine's functionality is missing; see [What it does not cover](#what-it-does-not-cover). The production engine is [`@defra/forms-engine-plugin`](https://github.com/DEFRA/forms-engine-plugin).
+
+This repository explores how the Defra forms engine could look as a [Fastify](https://fastify.dev) plugin in which every schema is a [Zod](https://zod.dev) schema and every type for validated data comes from that schema. It was built to support a discussion about tooling, covers only a thin slice of one journey, and has not been reviewed for production use. The package is marked `private` and is not published.
 
 The plugin is a library: a host application registers it alongside the session, CSRF and cookie plugins it depends on, as hosts do with the hapi plugin today. A devserver in `src/devserver/` is such a host and is used to develop the plugin in this repository. It is left out of the package.
 
@@ -123,15 +126,41 @@ Answers are typed in general terms (`FormState = Record<string, FormValue>`), be
 
 ## What it does not cover
 
-The slice renders TextField, NumberField, EmailAddressField, RadiosField, CheckboxesField and DatePartsField on question pages, a summary page and a confirmation page, with page conditions. The full V2 form definition schema is ported, including component types the engine does not render.
+This proof of concept is deliberately narrow, and much of what the production engine does is missing. It renders TextField, NumberField, EmailAddressField, RadiosField, CheckboxesField and DatePartsField on question pages, a summary page and a confirmation page, with page conditions. The full V2 form definition schema is ported, including component types the engine does not render.
 
-The following are not covered: repeaters, file upload, payment, maps and geospatial fields, postcode lookup, UK address, save and exit, i18n and Welsh, preview routes, page events, custom controllers, prefill from the query string, Redis and the client-side JavaScript bundle. Conditions support `is` and `is not` for string, boolean and list values, and `is more than` and `is less than` for numbers. Other operators throw a clear error.
+### Left out of scope
 
-Known costs:
+- **Page types:** repeaters (add another, list summary, delete item), file upload pages, and terminal or exit pages.
+- **Components the engine does not render:** multiline text, telephone number, yes/no, select, autocomplete, month and year, declaration, hidden and tracking fields; UK address with postcode lookup; easting and northing, OS grid reference, national grid and latitude and longitude fields; geospatial maps; payment through GOV.UK Pay. Content components (HTML, Markdown, details, inset text, list, notification banner) are dropped from pages without a warning.
+- **Journey features:** save and exit, preview routes (`/preview/{state}/...`), page events (`onLoad` and `onSave` HTTP calls), custom controllers supplied by a host, and prefill from the query string.
+- **Services:** form metadata (live and draft status, notification email), the submission API and notification emails, the form-unavailable page and reference number prefixes. The devserver only logs a submitted form.
+- **Language:** i18n and Welsh. All text is English and written into the code.
+- **Infrastructure:** Redis or catbox caching (sessions are held in memory), the client-side JavaScript bundle and the engine's own stylesheet (`shared.scss`). Pages use the plain GOV.UK Frontend CSS.
+- **Schema:** the V1 form definition.
+
+### Behaviour that differs from the production engine
+
+- Conditions support only `is` and `is not` for string, boolean and list values, and `is more than` and `is less than` for numbers. Dates, relative dates, lengths, `contains` and other operators throw an error.
+- The reference number is created when the form is sent rather than on the first request.
+- Validation messages for the six components are written to match the production engine's English text rather than taken from its shared message set.
+- Section titles, back links, flash messages, component-level conditions and conditional reveals inside list items are not ported.
+- Some component options are parsed but not applied, for example NumberField precision, `maxWords`, and the date limits `maxDaysInPast`, `maxDaysInFuture`, `earliestDate` and `latestDate`.
+- Component `options` and `schema` declare every key each type accepts, and unknown keys are stripped. A definition that carries an undeclared key loses it without a warning, where the Joi schema let it through.
+
+### Known issues
+
+- Page paths in the schema are not checked against the route pattern (`^[a-z0-9-]+$`), so such a page loads but cannot be opened.
+- A summary page at a path other than `/summary` breaks the change links.
+- A definition without a summary page, or with a component the engine does not render, gives a general server error rather than the "form definition is invalid" error.
+- NumberField accepts hexadecimal input such as `0x20`.
+- A page opened with `?force` lists errors from other pages in its error summary.
+- The check for list answers that a changed answer no longer offers looks at every list field, where the production engine stops at the first and skips yes/no fields.
+- `@fastify/static` is a runtime dependency although only the devserver uses it.
+
+### Known costs of the approach
 
 - Each host would have to move to Fastify, as a Fastify plugin cannot be mounted in a hapi host.
 - Zod 4 has no function schema, so the function options (`getFormDefinition`, `submit`, `viewContext`) are `z.custom` with a signature written by hand next to the schema. These are the only hand-written types beside a schema.
-- Component `options` and `schema` declare every key each type accepts, and unknown keys are stripped. A definition that carries an undeclared key loses it without a warning, where the Joi schema let it through.
 - Conditions are evaluated by a small function in `src/plugin/conditions/` rather than the `@defra/forms-model` expression parser, to avoid a dependency that brings Joi with it.
 
 ## Licence
