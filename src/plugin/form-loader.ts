@@ -1,12 +1,6 @@
-import { formDefinitionSchema, type FormDefinition } from '../schema/index.js'
+import { formDefinitionSchema } from '../schema/index.js'
+import { FormModel } from './models/form-model.js'
 import { type FormsService } from './options.js'
-
-/**
- * Placeholder model until the form model holds the page walk.
- */
-export interface FormModel {
-  definition: FormDefinition
-}
 
 /**
  * Error for a definition that fails to parse. Fastify reads `statusCode`,
@@ -54,7 +48,7 @@ export function createFormLoader(formsService: FormsService, log: ErrorLogger) {
       throw new FormDefinitionInvalidError()
     }
 
-    const model: FormModel = { definition: result.data }
+    const model = new FormModel(result.data)
     cache.set(slug, model)
     return model
   }
