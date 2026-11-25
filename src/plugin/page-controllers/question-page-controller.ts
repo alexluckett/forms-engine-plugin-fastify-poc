@@ -77,6 +77,6 @@ export class QuestionPageController extends PageController {
       ? this.getHref(nextPath) // Redirect to next page
       : this.href // Redirect to current page (refresh)
 
-    return proceed(request, reply, nextUrl)
+    return proceed(request, reply, nextUrl, this.model.basePath)
   }
 }

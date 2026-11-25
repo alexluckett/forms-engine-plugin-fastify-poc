@@ -46,9 +46,11 @@ const pageBody = z
   .object({
     _csrf: z.string().describe('CSRF token from the rendered page'),
     action: z
-      .enum(['validate', 'continue', 'send'])
+      .enum(['validate', 'send'])
       .default('validate')
-      .describe('Which button the user pressed; Continue sends none')
+      .describe(
+        'Which button the user pressed; Continue sends none, so the page is validated'
+      )
   })
   .catchall(z.union([z.string(), z.array(z.string())]))
 
@@ -74,7 +76,10 @@ function redirectOrMakeHandler(
   formRequest: FormContextRequest,
   makeHandler: (context: FormContext) => unknown
 ) {
-  const state = getState(request, model.slug)
+  // A preview with ?force reads no answers, as the hapi engine's getState
+  // does, so that a preview never shows or changes a real session.
+  const state =
+    'force' in formRequest.query ? {} : getState(request, model.slug)
   const context = model.getFormContext(formRequest, state)
   const relevantPath = page.getRelevantPath(context)
 
@@ -84,7 +89,7 @@ function redirectOrMakeHandler(
   }
 
   // Redirect back to last relevant page
-  return proceed(formRequest, reply, page.getHref(relevantPath))
+  return proceed(formRequest, reply, page.getHref(relevantPath), model.basePath)
 }
 
 export function registerRoutes(

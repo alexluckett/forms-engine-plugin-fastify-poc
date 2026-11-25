@@ -1,13 +1,18 @@
-{% extends baseLayoutPath %} {% from "govuk/components/panel/macro.njk" import
-govukPanel %} {% block pageTitle %}{{ pageTitle }} - {{ formName }}{% endblock
-%} {% block content %}
-<div class="govuk-grid-row">
-  <div class="govuk-grid-column-two-thirds">
-    {{ govukPanel({ titleText: pageTitle, html: "Your reference number<br /><strong
-      >" + reference + "</strong
-    >" }) }}
+{% extends baseLayoutPath %}
 
-    <p class="govuk-body">We have sent your answers to the service team.</p>
+{% from "govuk/components/panel/macro.njk" import govukPanel %}
+
+{% block pageTitle %}{{ pageTitle }} - {{ formName }}{% endblock %}
+
+{% block content %}
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      {{ govukPanel({
+        titleText: pageTitle,
+        html: "Your reference number<br><strong>" + reference + "</strong>"
+      }) }}
+
+      <p class="govuk-body">We have sent your answers to the service team.</p>
+    </div>
   </div>
-</div>
 {% endblock %}

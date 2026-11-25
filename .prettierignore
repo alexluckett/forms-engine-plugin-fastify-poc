@@ -3,3 +3,5 @@ node_modules
 coverage
 *.tgz
 .cache
+# Nunjucks templates, which Prettier would break across tags
+*.html

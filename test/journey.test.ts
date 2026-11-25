@@ -171,6 +171,29 @@ describe('example form journey', () => {
     expect(response.statusCode).toBe(200)
   })
 
+  it('never submits or changes the session from a ?force preview', async () => {
+    const client = createClient(host)
+    await answer(client, aboutYou.slice(0, 1))
+    await client.get(`${base}/summary?force`)
+
+    await client.post(`${base}/summary?force`, { action: 'send' })
+    await client.post(`${base}/contact?force`, {
+      email: 'x@example.com',
+      age: '50'
+    })
+
+    expect(submit).not.toHaveBeenCalled()
+    const page = renderResponse(await client.get(`${base}/your-name`))
+    expect(
+      page.getByRole('textbox', { name: 'What is your full name?' })
+    ).toHaveProperty('value', 'Ann Smith')
+    expect((await client.get(`${base}/contact`)).statusCode).toBe(200)
+    const contact = renderResponse(await client.get(`${base}/contact`))
+    expect(
+      contact.getByRole('textbox', { name: /Email address/ })
+    ).toHaveProperty('value', '')
+  })
+
   it('returns to the summary after an answer is changed from it', async () => {
     const client = createClient(host)
     await answer(client, [...aboutYou, ['/has-pet', { hasPet: 'no' }]])
@@ -219,7 +242,33 @@ describe('example form journey', () => {
   it('validates route params with Zod although the host never set it up', async () => {
     const response = await createClient(host).get('/Not_A_Slug/your-name')
 
+    expect(response.statusCode).toBe(404)
+    expect(response.body).not.toMatch(/pattern|Invalid/)
+  })
+
+  it('refuses a tampered action without showing schema details', async () => {
+    const client = createClient(host)
+    await client.get(`${base}/your-name`)
+
+    const response = await client.post(`${base}/your-name`, {
+      fullName: 'Ann',
+      action: 'bogus'
+    })
+
     expect(response.statusCode).toBe(400)
+    expect(response.body).not.toMatch(/Invalid|option|body/)
+  })
+
+  it('ignores a return URL that leaves the site', async () => {
+    const client = createClient(host)
+    await client.get(`${base}/your-name`)
+
+    const response = await client.post(
+      `${base}/your-name?returnUrl=%2F%5Cevil.example`,
+      { fullName: 'Ann' }
+    )
+
+    expect(response.headers.location).toBe(`${base}/contact`)
   })
 
   it('clears the answers after the form is sent', async () => {

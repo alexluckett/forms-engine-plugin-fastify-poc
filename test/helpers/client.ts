@@ -5,11 +5,13 @@ export type FormFields = Record<string, string | string[]>
 
 /**
  * A browser-like client: it keeps the session cookie between requests and
- * posts with the CSRF token from the page it last loaded.
+ * posts with the CSRF token and the submit button of the page it last
+ * loaded, as a browser sends the clicked button's name and value.
  */
 export function createClient(host: FastifyInstance) {
   let cookie = ''
   let csrfToken = ''
+  let button: [string, string] | undefined
 
   function remember(response: LightMyRequestResponse) {
     const session = response.cookies.find(({ name }) => name === 'sessionId')
@@ -18,9 +20,14 @@ export function createClient(host: FastifyInstance) {
       cookie = `sessionId=${session.value}`
     }
 
-    const input = new JSDOM(response.body).window.document.querySelector(
-      'input[name="_csrf"]'
-    )
+    const { document } = new JSDOM(response.body).window
+    const input = document.querySelector('input[name="_csrf"]')
+    const submit = document.querySelector('form button')
+
+    if (submit) {
+      const name = submit.getAttribute('name')
+      button = name ? [name, submit.getAttribute('value') ?? ''] : undefined
+    }
 
     if (input?.getAttribute('value')) {
       csrfToken = input.getAttribute('value') ?? ''
@@ -41,6 +48,10 @@ export function createClient(host: FastifyInstance) {
 
       if (withCsrf) {
         body.append('_csrf', csrfToken)
+      }
+
+      if (button && !(button[0] in fields)) {
+        body.append(button[0], button[1])
       }
 
       for (const [key, value] of Object.entries(fields)) {

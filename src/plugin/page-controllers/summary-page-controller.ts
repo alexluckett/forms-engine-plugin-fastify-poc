@@ -73,6 +73,11 @@ export class SummaryPageController extends PageController {
       context: FormContext,
       reply: FastifyReply
     ) => {
+      // A preview shows the page again rather than sending anything
+      if (context.isForceAccess) {
+        return this.makeGetRouteHandler(options)(request, context, reply)
+      }
+
       const { model } = this
       const reference = generateReference()
 
