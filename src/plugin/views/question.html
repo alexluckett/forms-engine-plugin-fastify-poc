@@ -1,0 +1,27 @@
+{% extends baseLayoutPath %} {% from "govuk/components/button/macro.njk" import
+govukButton %} {% from "govuk/components/checkboxes/macro.njk" import
+govukCheckboxes %} {% from "govuk/components/date-input/macro.njk" import
+govukDateInput %} {% from "govuk/components/input/macro.njk" import govukInput
+%} {% from "govuk/components/radios/macro.njk" import govukRadios %} {% block
+pageTitle %}{{ "Error: " if errors.length }}{{ pageTitle }} - {{ formName }}{%
+endblock %} {% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    {% include "partials/error-summary.html" %} {% if showTitle %}
+    <h1 class="govuk-heading-l">{{ pageTitle }}</h1>
+    {% endif %}
+
+    <form method="post" novalidate>
+      <input type="hidden" name="_csrf" value="{{ csrfToken }}" />
+
+      {% for field in fields %} {% if field.macro == "govukInput" %} {{
+      govukInput(field.params) }} {% elif field.macro == "govukRadios" %} {{
+      govukRadios(field.params) }} {% elif field.macro == "govukCheckboxes" %}
+      {{ govukCheckboxes(field.params) }} {% elif field.macro ==
+      "govukDateInput" %} {{ govukDateInput(field.params) }} {% endif %} {%
+      endfor %} {{ govukButton({ text: "Continue", name: "action", value:
+      "continue" }) }}
+    </form>
+  </div>
+</div>
+{% endblock %}

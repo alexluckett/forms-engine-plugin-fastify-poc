@@ -6,6 +6,9 @@ import {
   validatorCompiler
 } from 'fastify-type-provider-zod'
 
+import type {} from '@fastify/csrf-protection'
+import { createFormLoader } from './form-loader.js'
+import { registerRoutes } from './routes.js'
 import { pluginOptionsSchema, type PluginOptions } from './options.js'
 import { registerViews } from './views.js'
 
@@ -19,6 +22,12 @@ async function register(fastify: FastifyInstance, rawOptions: PluginOptions) {
 
   await fastify.register(fastifyFormbody)
   await registerViews(fastify, options)
+
+  registerRoutes(
+    fastify,
+    options,
+    createFormLoader(options.services.formsService, fastify.log)
+  )
 }
 
 /**

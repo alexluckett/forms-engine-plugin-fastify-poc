@@ -69,7 +69,7 @@ export class RadiosField extends ListField<RadiosFieldComponent> {
   }
 
   toViewModel(
-    value: FormValue | undefined,
+    value: unknown,
     error?: string,
     isPageHeading = false
   ): FieldViewModel {
@@ -83,7 +83,7 @@ export class RadiosField extends ListField<RadiosFieldComponent> {
           value: String(item.value),
           text: item.text,
           hint: item.hint ? { text: item.hint.text } : undefined,
-          checked: item.value === value
+          checked: String(item.value) === String(value)
         }))
       }
     }
@@ -138,11 +138,11 @@ export class CheckboxesField extends ListField<CheckboxesFieldComponent> {
   }
 
   toViewModel(
-    value: FormValue | undefined,
+    value: unknown,
     error?: string,
     isPageHeading = false
   ): FieldViewModel {
-    const selected = Array.isArray(value) ? value : []
+    const selected = (Array.isArray(value) ? value : [value]).map(String)
 
     return {
       macro: 'govukCheckboxes',
@@ -154,7 +154,7 @@ export class CheckboxesField extends ListField<CheckboxesFieldComponent> {
           value: String(item.value),
           text: item.text,
           hint: item.hint ? { text: item.hint.text } : undefined,
-          checked: selected.includes(item.value)
+          checked: selected.includes(String(item.value))
         }))
       }
     }

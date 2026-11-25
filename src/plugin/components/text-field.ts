@@ -64,14 +64,14 @@ export class TextField extends FieldBase<TextFieldComponent> {
   }
 
   toViewModel(
-    value: FormValue | undefined,
+    value: unknown,
     error?: string,
     isPageHeading = false
   ): FieldViewModel {
     return {
       macro: 'govukInput',
       params: {
-        ...this.common(value, error),
+        ...this.common(typeof value === 'string' ? value : undefined, error),
         label: label(this.title, isPageHeading),
         autocomplete: this.def.options.autocomplete,
         classes: this.def.options.classes
@@ -94,14 +94,14 @@ export class EmailAddressField extends FieldBase<EmailAddressFieldComponent> {
   }
 
   toViewModel(
-    value: FormValue | undefined,
+    value: unknown,
     error?: string,
     isPageHeading = false
   ): FieldViewModel {
     return {
       macro: 'govukInput',
       params: {
-        ...this.common(value, error),
+        ...this.common(typeof value === 'string' ? value : undefined, error),
         type: 'email',
         autocomplete: 'email',
         spellcheck: false,

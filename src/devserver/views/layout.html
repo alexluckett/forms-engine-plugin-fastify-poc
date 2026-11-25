@@ -1,0 +1,14 @@
+{% extends "govuk/template.njk" %} {% from "govuk/components/header/macro.njk"
+import govukHeader %} {% from "govuk/components/phase-banner/macro.njk" import
+govukPhaseBanner %} {% block head %}
+<link href="/govuk/govuk-frontend.min.css" rel="stylesheet" />
+{% endblock %} {% block header %} {{ govukHeader({ serviceName: "Forms engine on
+Fastify", serviceUrl: "/example-form" }) }} {% endblock %} {% block
+beforeContent %} {{ govukPhaseBanner({ tag: { text: "Proof of concept" }, text:
+"This devserver hosts the engine plugin for development." }) }} {% endblock %}
+{% block bodyEnd %}
+<script type="module">
+  import { initAll } from '/govuk/govuk-frontend.min.js'
+  initAll()
+</script>
+{% endblock %}

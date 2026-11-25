@@ -16,7 +16,9 @@ export interface FieldViewModel {
 /**
  * What a page needs from each field it renders. `answerSchema` is built at
  * runtime from the field's definition, so the answer is checked by Zod but
- * typed only as a general `FormValue`.
+ * typed only as a general `FormValue`. `toViewModel` takes either a stored
+ * answer or what the user just posted, so that a page with errors shows
+ * back exactly what was typed.
  */
 export interface Field {
   readonly name: string
@@ -25,7 +27,7 @@ export interface Field {
   answerSchema(): z.ZodType<FormValue | undefined>
   fromBody(body: Body): unknown
   toViewModel(
-    value: FormValue | undefined,
+    value: unknown,
     error?: string,
     isPageHeading?: boolean
   ): FieldViewModel

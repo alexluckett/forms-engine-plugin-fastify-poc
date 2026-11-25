@@ -8,6 +8,15 @@ import { messages } from './messages.js'
 const parts = ['day', 'month', 'year'] as const
 
 /**
+ * Reads day, month and year from a stored answer or a posted page, and
+ * gives empty parts for anything else.
+ */
+const shownParts = z
+  .object({ day: z.unknown(), month: z.unknown(), year: z.unknown() })
+  .partial()
+  .catch({})
+
+/**
  * True when the day, month and year make a date that exists, so that
  * 31 February is refused.
  */
@@ -90,14 +99,11 @@ export class DatePartsField extends FieldBase<DatePartsFieldComponent> {
   }
 
   toViewModel(
-    value: FormValue | undefined,
+    value: unknown,
     error?: string,
     isPageHeading = false
   ): FieldViewModel {
-    const date =
-      value && typeof value === 'object' && !Array.isArray(value)
-        ? value
-        : undefined
+    const date = shownParts.parse(value)
 
     return {
       macro: 'govukDateInput',
@@ -117,7 +123,7 @@ export class DatePartsField extends FieldBase<DatePartsFieldComponent> {
           id: `${this.name}__${part}`,
           name: `${this.name}__${part}`,
           label: part.charAt(0).toUpperCase() + part.slice(1),
-          value: date?.[part],
+          value: date[part],
           classes: `govuk-input--width-${part === 'year' ? '4' : '2'}${error ? ' govuk-input--error' : ''}`
         }))
       }

@@ -84,6 +84,30 @@ export class FormModel {
   }
 
   /**
+   * The path to send the user to when they may not open `page` yet, or
+   * undefined when they may. A page opens only when it is relevant and no
+   * relevant page before it is unanswered, so that users cannot skip ahead;
+   * the summary opens only when every relevant page is answered.
+   */
+  redirectBefore(page: Page, state: FormState): string | undefined {
+    const firstUnanswered = this.firstUnansweredPath(state)
+
+    if (page === this.summaryPage) {
+      return firstUnanswered === page.path ? undefined : firstUnanswered
+    }
+
+    const relevant = this.relevantPages(state)
+    const pageIndex = relevant.indexOf(page)
+    const firstIndex = relevant.findIndex(
+      ({ path }) => path === firstUnanswered
+    )
+
+    return pageIndex === -1 || (firstIndex !== -1 && pageIndex > firstIndex)
+      ? firstUnanswered
+      : undefined
+  }
+
+  /**
    * Answers from relevant pages only, so that an answer the user gave
    * before changing their route is never shown or submitted.
    */
