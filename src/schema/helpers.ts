@@ -37,10 +37,12 @@ export function uniqueBy<T>(
 
 /**
  * Treats an empty string as "not given", as HTML form editors often send
- * `''` for an empty number input.
+ * `''` for an empty number input. A union rather than a preprocess step
+ * keeps the input type precise (`'' | number`), so that callers who build
+ * definitions by hand still get type checks.
  */
 export function emptyToUndefined<T extends z.ZodType>(schema: T) {
-  return z.preprocess((value) => (value === '' ? undefined : value), schema)
+  return z.union([z.literal('').transform(() => undefined), schema])
 }
 
 /**
