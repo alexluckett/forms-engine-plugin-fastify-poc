@@ -1,3 +1,5 @@
+import type {} from '@fastify/session'
+
 import { type FormState } from '../plugin/state.js'
 
 /**
