@@ -1,6 +1,6 @@
-import { type z } from 'zod'
+import { z } from 'zod'
 
-import { type FormComponentsDef } from '../../schema/index.js'
+import { type FormComponentsDef, type List } from '../../schema/index.js'
 import { type FormValue } from '../state.js'
 
 export type Body = Record<string, unknown>
@@ -24,7 +24,10 @@ export interface Field {
   readonly name: string
   readonly label: string
   readonly errorHref: string
+  /** The list a list-backed field takes its options from */
+  readonly list?: List | undefined
   answerSchema(): z.ZodType<FormValue | undefined>
+  stateSchema(): z.ZodType<FormValue | undefined>
   fromBody(body: Body): unknown
   toViewModel(
     value: unknown,
@@ -77,6 +80,19 @@ export abstract class FieldBase<D extends FormComponentsDef> implements Field {
 
   fromBody(body: Body): unknown {
     return body[this.name]
+  }
+
+  /**
+   * Checks a stored answer with the same rules as a posted one, by turning
+   * it back into what the page would post. Each field keeps one set of
+   * rules rather than one for the page and another for the session.
+   */
+  stateSchema(): z.ZodType<FormValue | undefined> {
+    return z.preprocess((value) => this.toPosted(value), this.answerSchema())
+  }
+
+  protected toPosted(value: unknown): unknown {
+    return value
   }
 
   protected common(value: unknown, error?: string) {

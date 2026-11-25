@@ -1,14 +1,22 @@
-import { type FastifyInstance, type FastifyReply } from 'fastify'
+import {
+  type FastifyInstance,
+  type FastifyReply,
+  type FastifyRequest
+} from 'fastify'
 import { type ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 
-import { type PageContext } from './controllers/context.js'
-import { renderQuestion, submitQuestion } from './controllers/question.js'
-import { renderStatus } from './controllers/status.js'
-import { renderSummary, submitForm } from './controllers/summary.js'
 import { type LoadForm } from './form-loader.js'
+import { proceed } from './helpers.js'
+import { type FormModel } from './models/form-model.js'
+import { type FormContext, type FormContextRequest } from './models/types.js'
 import { type ParsedPluginOptions } from './options.js'
-import { getState } from './session.js'
+import {
+  type PageController,
+  QuestionPageController,
+  SummaryPageController
+} from './page-controllers/index.js'
+import { getReference, getState } from './session.js'
 
 const slug = z
   .string()
@@ -25,6 +33,11 @@ const paramsPage = z.object({
     .describe('Page path without its leading slash')
 })
 
+const query = z
+  .object({ returnUrl: z.string().optional() })
+  .catchall(z.string())
+  .describe('Query string; `force` opens any page, as previews do')
+
 /**
  * A posted page. The engine's own keys are declared; every other key is an
  * answer, which a form posts as a string or, for checkboxes, a list.
@@ -33,9 +46,9 @@ const pageBody = z
   .object({
     _csrf: z.string().describe('CSRF token from the rendered page'),
     action: z
-      .enum(['continue', 'send'])
-      .default('continue')
-      .describe('Which button the user pressed')
+      .enum(['validate', 'continue', 'send'])
+      .default('validate')
+      .describe('Which button the user pressed; Continue sends none')
   })
   .catchall(z.union([z.string(), z.array(z.string())]))
 
@@ -48,6 +61,32 @@ function notFound(reply: FastifyReply) {
   return reply
 }
 
+/**
+ * Walks the form for this request, then either runs the page's handler or
+ * redirects to the last page the user may open. Ported from the hapi
+ * engine's `redirectOrMakeHandler`.
+ */
+function redirectOrMakeHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  model: FormModel,
+  page: PageController,
+  formRequest: FormContextRequest,
+  makeHandler: (context: FormContext) => unknown
+) {
+  const state = getState(request, model.slug)
+  const context = model.getFormContext(formRequest, state)
+  const relevantPath = page.getRelevantPath(context)
+
+  // Return handler for relevant pages or preview URL direct access
+  if (relevantPath.startsWith(page.path) || context.isForceAccess) {
+    return makeHandler(context)
+  }
+
+  // Redirect back to last relevant page
+  return proceed(formRequest, reply, page.getHref(relevantPath))
+}
+
 export function registerRoutes(
   fastify: FastifyInstance,
   options: ParsedPluginOptions,
@@ -55,44 +94,16 @@ export function registerRoutes(
 ) {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
 
-  /**
-   * Loads the form for a slug, or sends a 404 when there is none.
-   */
-  async function contextFor(
-    request: PageContext['request'],
-    reply: FastifyReply,
-    formSlug: string
-  ): Promise<PageContext | undefined> {
-    const model = await loadForm(formSlug)
-
-    if (!model) {
-      return undefined
-    }
-
-    return {
-      request,
-      reply,
-      model,
-      slug: formSlug,
-      formUrl: `${fastify.prefix}/${formSlug}`,
-      options
-    }
-  }
-
   app.get(
     '/:slug',
     { schema: { params: paramsSlug } },
     async (request, reply) => {
-      const context = await contextFor(request, reply, request.params.slug)
+      const model = await loadForm(request.params.slug)
+      const start = model?.pages[0]
 
-      if (!context) {
-        return notFound(reply)
-      }
-
-      const state = getState(request, context.slug)
-      return reply.redirect(
-        `${context.formUrl}${context.model.firstUnansweredPath(state)}`
-      )
+      return start
+        ? reply.redirect(start.getHref(start.getStartPath()))
+        : notFound(reply)
     }
   )
 
@@ -100,44 +111,64 @@ export function registerRoutes(
     '/:slug/status',
     { schema: { params: paramsSlug } },
     async (request, reply) => {
-      const context = await contextFor(request, reply, request.params.slug)
-      return context ? renderStatus(context) : notFound(reply)
+      const model = await loadForm(request.params.slug)
+
+      if (!model) {
+        return notFound(reply)
+      }
+
+      // Without a reference the user has not sent the form yet
+      const reference = getReference(request, model.slug)
+
+      if (!reference) {
+        return reply.redirect(model.basePath)
+      }
+
+      return reply.view('status.html', {
+        formName: model.definition.name,
+        pageTitle: 'Form submitted',
+        reference
+      })
     }
   )
 
   app.get(
     '/:slug/:path',
-    { schema: { params: paramsPage } },
+    { schema: { params: paramsPage, querystring: query } },
     async (request, reply) => {
       const { params } = request
-      const context = await contextFor(request, reply, params.slug)
-      const page = context?.model.pageByPath(params.path)
+      const model = await loadForm(params.slug)
+      const page = model?.pageByPath(params.path)
 
-      if (!context || !page) {
+      if (!model || !page) {
         return notFound(reply)
       }
 
-      const redirect = context.model.redirectBefore(
+      const formRequest: FormContextRequest = {
+        method: 'get',
+        path: page.path,
+        query: request.query
+      }
+
+      return redirectOrMakeHandler(
+        request,
+        reply,
+        model,
         page,
-        getState(request, context.slug)
+        formRequest,
+        (context) =>
+          page instanceof SummaryPageController ||
+          page instanceof QuestionPageController
+            ? page.makeGetRouteHandler(options)(request, context, reply)
+            : notFound(reply)
       )
-
-      if (redirect) {
-        return reply.redirect(`${context.formUrl}${redirect}`)
-      }
-
-      if (page === context.model.summaryPage) {
-        return renderSummary(context)
-      }
-
-      return renderQuestion(context, page)
     }
   )
 
   app.post(
     '/:slug/:path',
     {
-      schema: { params: paramsPage, body: pageBody },
+      schema: { params: paramsPage, querystring: query, body: pageBody },
       // Checked before the body schema, so that a missing token is a 403
       // rather than a validation error.
       preValidation: (request, reply, done) => {
@@ -146,29 +177,43 @@ export function registerRoutes(
     },
     async (request, reply) => {
       const { params, body } = request
-      const context = await contextFor(request, reply, params.slug)
-      const page = context?.model.pageByPath(params.path)
+      const model = await loadForm(params.slug)
+      const page = model?.pageByPath(params.path)
 
-      if (!context || !page) {
+      if (!model || !page) {
         return notFound(reply)
       }
 
-      const redirect = context.model.redirectBefore(
+      const formRequest: FormContextRequest = {
+        method: 'post',
+        path: page.path,
+        query: request.query,
+        payload: body
+      }
+
+      return redirectOrMakeHandler(
+        request,
+        reply,
+        model,
         page,
-        getState(request, context.slug)
+        formRequest,
+        (context) => {
+          if (page instanceof SummaryPageController) {
+            return page.makePostRouteHandler(options)(request, context, reply)
+          }
+
+          if (page instanceof QuestionPageController) {
+            return page.makePostRouteHandler(options)(
+              request,
+              formRequest,
+              context,
+              reply
+            )
+          }
+
+          return notFound(reply)
+        }
       )
-
-      if (redirect) {
-        return reply.redirect(`${context.formUrl}${redirect}`)
-      }
-
-      if (page === context.model.summaryPage) {
-        return body.action === 'send'
-          ? submitForm(context)
-          : renderSummary(context)
-      }
-
-      return submitQuestion(context, page, body)
     }
   )
 }

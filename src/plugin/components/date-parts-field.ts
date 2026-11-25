@@ -46,6 +46,20 @@ export class DatePartsField extends FieldBase<DatePartsFieldComponent> {
     )
   }
 
+  protected toPosted(value: unknown) {
+    const date = shownParts.parse(value)
+
+    return Object.fromEntries(
+      parts.map((part) => {
+        const partValue = date[part]
+        return [
+          part,
+          typeof partValue === 'number' ? String(partValue) : partValue
+        ] as const
+      })
+    )
+  }
+
   answerSchema(): z.ZodType<FormValue | undefined> {
     const title = this.title
     const part = z.string().trim().optional().catch(undefined)

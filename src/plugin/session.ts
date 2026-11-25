@@ -7,15 +7,14 @@ export function getState(request: FastifyRequest, slug: string): FormState {
   return request.session.get('forms')?.[slug] ?? {}
 }
 
-export function mergeState(
+export function setState(
   request: FastifyRequest,
   slug: string,
-  values: FormState
+  state: FormState
 ) {
-  const forms = request.session.get('forms') ?? {}
   request.session.set('forms', {
-    ...forms,
-    [slug]: { ...forms[slug], ...values }
+    ...request.session.get('forms'),
+    [slug]: state
   })
 }
 

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import {
   type CheckboxesFieldComponent,
   type Item,
+  type List,
   type RadiosFieldComponent
 } from '../../schema/index.js'
 import { type FormModel } from '../models/form-model.js'
@@ -18,11 +19,15 @@ import { messages } from './messages.js'
 abstract class ListField<
   D extends RadiosFieldComponent | CheckboxesFieldComponent
 > extends FieldBase<D> {
-  readonly items: Item[]
+  readonly list: List | undefined
 
   constructor(def: D, model: FormModel) {
     super(def)
-    this.items = model.listById(def.list)?.items ?? []
+    this.list = model.listById(def.list)
+  }
+
+  get items(): Item[] {
+    return this.list?.items ?? []
   }
 
   protected itemFor(posted: string) {
@@ -51,6 +56,10 @@ abstract class ListField<
 }
 
 export class RadiosField extends ListField<RadiosFieldComponent> {
+  protected toPosted(value: unknown) {
+    return typeof value === 'number' ? String(value) : value
+  }
+
   answerSchema(): z.ZodType<FormValue | undefined> {
     const schema = z
       .string({ error: this.selectMessage })
@@ -109,6 +118,10 @@ export class CheckboxesField extends ListField<CheckboxesFieldComponent> {
     }
 
     return typeof posted === 'string' ? [posted] : posted
+  }
+
+  protected toPosted(value: unknown) {
+    return Array.isArray(value) ? value.map(String) : []
   }
 
   answerSchema(): z.ZodType<FormValue | undefined> {

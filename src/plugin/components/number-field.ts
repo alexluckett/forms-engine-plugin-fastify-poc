@@ -35,6 +35,10 @@ export class NumberField extends FieldBase<NumberFieldComponent> {
     return optionalWhenEmpty(this.isRequired, schema)
   }
 
+  protected toPosted(value: unknown) {
+    return typeof value === 'number' ? String(value) : value
+  }
+
   toViewModel(
     value: unknown,
     error?: string,

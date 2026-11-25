@@ -30,7 +30,7 @@ async function answer(
   for (const [path, fields] of steps) {
     await client.get(`${base}${path}`)
     const response = await client.post(`${base}${path}`, fields)
-    expect(response.statusCode).toBe(302)
+    expect(response.statusCode).toBe(303)
   }
 }
 
@@ -70,7 +70,7 @@ describe('example form journey', () => {
     const response = await client.post(`${base}/your-name`, { fullName: '' })
     const { getByRole } = renderResponse(response)
 
-    expect(response.statusCode).toBe(400)
+    expect(response.statusCode).toBe(200)
     const link = getByRole('alert').querySelector('a')
     expect(link?.textContent).toBe('Enter what is your full name?')
     expect(link?.getAttribute('href')).toBe('#fullName')
@@ -151,7 +151,7 @@ describe('example form journey', () => {
 
     const response = await client.post(`${base}/pet-details`, petDetails)
 
-    expect(response.statusCode).toBe(302)
+    expect(response.statusCode).toBe(303)
     expect(response.headers.location).toBe(`${base}/your-name`)
   })
 
@@ -163,6 +163,33 @@ describe('example form journey', () => {
 
     expect(response.headers.location).toBe(`${base}/has-pet`)
     expect(submit).not.toHaveBeenCalled()
+  })
+
+  it('opens a later page directly with ?force, as previews do', async () => {
+    const response = await createClient(host).get(`${base}/pet-details?force`)
+
+    expect(response.statusCode).toBe(200)
+  })
+
+  it('returns to the summary after an answer is changed from it', async () => {
+    const client = createClient(host)
+    await answer(client, [...aboutYou, ['/has-pet', { hasPet: 'no' }]])
+
+    const summary = renderResponse(await client.get(`${base}/summary`))
+    const change = summary
+      .getAllByRole('link', { name: /Change/ })
+      .find((link) => link.getAttribute('href')?.startsWith(`${base}/contact`))
+    const href = change?.getAttribute('href') ?? ''
+    expect(href).toBe(`${base}/contact?returnUrl=%2Fexample-form%2Fsummary`)
+
+    await client.get(href)
+    const response = await client.post(href, {
+      email: 'ann@example.com',
+      age: '41'
+    })
+
+    expect(response.statusCode).toBe(303)
+    expect(response.headers.location).toBe(`${base}/summary`)
   })
 
   it('refuses a post without a CSRF token and keeps the session unchanged', async () => {

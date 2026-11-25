@@ -10,7 +10,7 @@ import {
 import { FormModel } from '../models/form-model.js'
 import { createField, parsePage } from './index.js'
 
-const model = new FormModel(richDefinition)
+const model = new FormModel(richDefinition, { basePath: '/rich-form' })
 
 function fieldFor(input: ComponentDefInput) {
   const field = createField(componentDefSchema.parse(input), model)

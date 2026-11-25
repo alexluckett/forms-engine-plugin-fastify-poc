@@ -26,7 +26,7 @@ async function register(fastify: FastifyInstance, rawOptions: PluginOptions) {
   registerRoutes(
     fastify,
     options,
-    createFormLoader(options.services.formsService, fastify.log)
+    createFormLoader(options.services.formsService, fastify.log, fastify.prefix)
   )
 }
 

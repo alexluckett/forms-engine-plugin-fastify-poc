@@ -22,7 +22,11 @@ interface ErrorLogger {
  * Makes a function that loads, parses and caches a form by slug. A form is
  * parsed once per process, so that each request reuses the same model.
  */
-export function createFormLoader(formsService: FormsService, log: ErrorLogger) {
+export function createFormLoader(
+  formsService: FormsService,
+  log: ErrorLogger,
+  prefix = ''
+) {
   const cache = new Map<string, FormModel>()
 
   return async (slug: string): Promise<FormModel | undefined> => {
@@ -48,7 +52,10 @@ export function createFormLoader(formsService: FormsService, log: ErrorLogger) {
       throw new FormDefinitionInvalidError()
     }
 
-    const model = new FormModel(result.data)
+    const model = new FormModel(result.data, {
+      basePath: `${prefix}/${slug}`,
+      slug
+    })
     cache.set(slug, model)
     return model
   }
