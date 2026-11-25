@@ -4,7 +4,7 @@ import { type NumberFieldComponent } from '../../schema/index.js'
 import { type FormValue } from '../state.js'
 import { FieldBase, type FieldViewModel } from './component.js'
 import { messages } from './messages.js'
-import { label, optionalWhenEmpty } from './text-field.js'
+import { optionalWhenEmpty } from './text-field.js'
 
 export class NumberField extends FieldBase<NumberFieldComponent> {
   answerSchema() {
@@ -39,11 +39,7 @@ export class NumberField extends FieldBase<NumberFieldComponent> {
     return typeof value === 'number' ? String(value) : value
   }
 
-  toViewModel(
-    value: unknown,
-    error?: string,
-    isPageHeading = false
-  ): FieldViewModel {
+  toViewModel(value: unknown, error?: string): FieldViewModel {
     const { prefix, suffix } = this.def.options
 
     return {
@@ -57,7 +53,7 @@ export class NumberField extends FieldBase<NumberFieldComponent> {
         ),
         inputmode: 'numeric',
         classes: 'govuk-input--width-5',
-        label: label(this.title, isPageHeading),
+        label: { text: this.labelText },
         prefix: prefix ? { text: prefix } : undefined,
         suffix: suffix ? { text: suffix } : undefined
       }

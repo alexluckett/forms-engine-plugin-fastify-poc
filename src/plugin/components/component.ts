@@ -6,11 +6,25 @@ import { type FormValue } from '../state.js'
 export type Body = Record<string, unknown>
 
 /**
+ * A label or fieldset legend. The page sets `classes` and `isPageHeading`,
+ * as the hapi engine's question page does, because the right size depends
+ * on how many questions the page has.
+ */
+export interface LabelOrLegend {
+  text: string
+  classes?: string
+  isPageHeading?: boolean
+}
+
+/**
  * A GOV.UK Frontend macro name and the params to call it with.
  */
 export interface FieldViewModel {
   macro: 'govukInput' | 'govukRadios' | 'govukCheckboxes' | 'govukDateInput'
-  params: Record<string, unknown>
+  params: Record<string, unknown> & {
+    label?: LabelOrLegend
+    fieldset?: { legend: LabelOrLegend }
+  }
 }
 
 /**
@@ -29,11 +43,8 @@ export interface Field {
   answerSchema(): z.ZodType<FormValue | undefined>
   stateSchema(): z.ZodType<FormValue | undefined>
   fromBody(body: Body): unknown
-  toViewModel(
-    value: unknown,
-    error?: string,
-    isPageHeading?: boolean
-  ): FieldViewModel
+  readonly isRequired: boolean
+  toViewModel(value: unknown, error?: string): FieldViewModel
   display(value: FormValue | undefined): string
 }
 
@@ -58,6 +69,18 @@ export abstract class FieldBase<D extends FormComponentsDef> implements Field {
 
   get label() {
     return this.def.shortDescription ?? this.def.title
+  }
+
+  /**
+   * The question text, with "(optional)" added for an optional question
+   * unless the form turns that off, as in the hapi engine's `FormComponent`.
+   */
+  get labelText() {
+    const { options } = this.def
+    const hideOptional = 'optionalText' in options && options.optionalText
+    return !this.isRequired && !hideOptional
+      ? `${this.title} (optional)`
+      : this.title
   }
 
   get errorHref() {

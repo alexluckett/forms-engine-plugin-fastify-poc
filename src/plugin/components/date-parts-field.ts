@@ -112,11 +112,7 @@ export class DatePartsField extends FieldBase<DatePartsFieldComponent> {
       })
   }
 
-  toViewModel(
-    value: unknown,
-    error?: string,
-    isPageHeading = false
-  ): FieldViewModel {
+  toViewModel(value: unknown, error?: string): FieldViewModel {
     const date = shownParts.parse(value)
 
     return {
@@ -125,13 +121,10 @@ export class DatePartsField extends FieldBase<DatePartsFieldComponent> {
         ...this.common(undefined, error),
         id: this.name,
         fieldset: {
-          legend: isPageHeading
-            ? {
-                text: this.title,
-                isPageHeading,
-                classes: 'govuk-fieldset__legend--l'
-              }
-            : { text: this.title }
+          legend: {
+            text: this.labelText,
+            classes: 'govuk-fieldset__legend--m'
+          }
         },
         items: parts.map((part) => ({
           id: `${this.name}__${part}`,

@@ -38,16 +38,21 @@ abstract class ListField<
     return this.message(messages.selectRequired(this.label))
   }
 
-  protected legend(isPageHeading: boolean) {
+  /**
+   * Selection fields have a medium legend unless the page makes it the
+   * heading, as in the hapi engine's `SelectionControlField`.
+   */
+  protected legend() {
     return {
-      legend: isPageHeading
-        ? {
-            text: this.title,
-            isPageHeading,
-            classes: 'govuk-fieldset__legend--l'
-          }
-        : { text: this.title }
+      legend: { text: this.labelText, classes: 'govuk-fieldset__legend--m' }
     }
+  }
+
+  /**
+   * Item labels are bold when the form asks for it.
+   */
+  protected itemLabel() {
+    return this.def.options.bold ? { classes: 'govuk-label--s' } : undefined
   }
 
   protected textFor(value: string | number) {
@@ -77,21 +82,18 @@ export class RadiosField extends ListField<RadiosFieldComponent> {
     return this.isRequired ? schema : schema.optional()
   }
 
-  toViewModel(
-    value: unknown,
-    error?: string,
-    isPageHeading = false
-  ): FieldViewModel {
+  toViewModel(value: unknown, error?: string): FieldViewModel {
     return {
       macro: 'govukRadios',
       params: {
         ...this.common(undefined, error),
         idPrefix: this.name,
-        fieldset: this.legend(isPageHeading),
+        fieldset: this.legend(),
         items: this.items.map((item) => ({
           value: String(item.value),
           text: item.text,
           hint: item.hint ? { text: item.hint.text } : undefined,
+          label: this.itemLabel(),
           checked: String(item.value) === String(value)
         }))
       }
@@ -150,11 +152,7 @@ export class CheckboxesField extends ListField<CheckboxesFieldComponent> {
       })
   }
 
-  toViewModel(
-    value: unknown,
-    error?: string,
-    isPageHeading = false
-  ): FieldViewModel {
+  toViewModel(value: unknown, error?: string): FieldViewModel {
     const selected = (Array.isArray(value) ? value : [value]).map(String)
 
     return {
@@ -162,11 +160,12 @@ export class CheckboxesField extends ListField<CheckboxesFieldComponent> {
       params: {
         ...this.common(undefined, error),
         idPrefix: this.name,
-        fieldset: this.legend(isPageHeading),
+        fieldset: this.legend(),
         items: this.items.map((item) => ({
           value: String(item.value),
           text: item.text,
           hint: item.hint ? { text: item.hint.text } : undefined,
+          label: this.itemLabel(),
           checked: selected.includes(String(item.value))
         }))
       }

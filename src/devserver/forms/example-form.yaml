@@ -52,7 +52,7 @@ conditions:
         value: 65
 pages:
   - path: /your-name
-    title: Your name
+    title: ''
     components:
       - id: 0b8d4c4e-6f7a-4e31-9a2b-7c1d2e3f4c01
         type: TextField
@@ -75,7 +75,7 @@ pages:
           min: 18
           max: 120
   - path: /has-pet
-    title: Pets
+    title: ''
     components:
       - id: 0b8d4c4e-6f7a-4e31-9a2b-7c1d2e3f4c03
         type: RadiosField
@@ -96,7 +96,7 @@ pages:
         title: When was your oldest pet born?
         hint: For example, 27 3 2019
   - path: /retirement
-    title: Retirement
+    title: ''
     condition: 0b8d4c4e-6f7a-4e31-9a2b-7c1d2e3f4b03
     components:
       - type: TextField

@@ -63,16 +63,12 @@ export class TextField extends FieldBase<TextFieldComponent> {
     return optionalWhenEmpty(this.isRequired, schema)
   }
 
-  toViewModel(
-    value: unknown,
-    error?: string,
-    isPageHeading = false
-  ): FieldViewModel {
+  toViewModel(value: unknown, error?: string): FieldViewModel {
     return {
       macro: 'govukInput',
       params: {
         ...this.common(typeof value === 'string' ? value : undefined, error),
-        label: label(this.title, isPageHeading),
+        label: { text: this.labelText },
         autocomplete: this.def.options.autocomplete,
         classes: this.def.options.classes
       }
@@ -93,11 +89,7 @@ export class EmailAddressField extends FieldBase<EmailAddressFieldComponent> {
     return optionalWhenEmpty(this.isRequired, schema)
   }
 
-  toViewModel(
-    value: unknown,
-    error?: string,
-    isPageHeading = false
-  ): FieldViewModel {
+  toViewModel(value: unknown, error?: string): FieldViewModel {
     return {
       macro: 'govukInput',
       params: {
@@ -105,7 +97,7 @@ export class EmailAddressField extends FieldBase<EmailAddressFieldComponent> {
         type: 'email',
         autocomplete: 'email',
         spellcheck: false,
-        label: label(this.title, isPageHeading)
+        label: { text: this.labelText }
       }
     }
   }
@@ -113,13 +105,4 @@ export class EmailAddressField extends FieldBase<EmailAddressFieldComponent> {
   display(value: FormValue | undefined) {
     return typeof value === 'string' ? value : ''
   }
-}
-
-/**
- * Label params; a single-field page uses the label as its heading.
- */
-export function label(text: string, isPageHeading: boolean) {
-  return isPageHeading
-    ? { text, isPageHeading, classes: 'govuk-label--l' }
-    : { text }
 }

@@ -40,6 +40,8 @@ export async function registerViews(
     options: {
       onConfigure: (env: nunjucks.Environment) => {
         env.addFilter('lowerFirst', lowerFirst)
+        // Read by the GOV.UK template, as set in the hapi engine
+        env.addGlobal('govukRebrand', true)
       }
     }
   })
