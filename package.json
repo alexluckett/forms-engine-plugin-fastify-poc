@@ -1,0 +1,61 @@
+{
+  "name": "@defra/forms-engine-plugin-fastify",
+  "version": "0.0.0",
+  "description": "Proof of concept: the Defra forms engine as a Fastify plugin, typed end to end by Zod",
+  "private": true,
+  "license": "OGL-UK-3.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "files": [
+    ".server"
+  ],
+  "exports": {
+    ".": {
+      "types": "./.server/index.d.ts",
+      "import": "./.server/index.js"
+    },
+    "./schema": {
+      "types": "./.server/schema/index.d.ts",
+      "import": "./.server/schema/index.js"
+    }
+  },
+  "scripts": {
+    "build": "rm -rf .server && tsc -p tsconfig.build.json && cp -R src/plugin/views .server/plugin/views",
+    "dev": "tsx watch src/devserver/index.ts",
+    "test": "vitest run",
+    "lint": "eslint . && tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "verify": "npm run format:check && npm run lint && npm test && npm run build && npm pack --dry-run"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/csrf-protection": "^8.0.2",
+    "@fastify/formbody": "^9.0.2",
+    "@fastify/session": "^11.2.1",
+    "@fastify/static": "^10.1.12",
+    "@fastify/view": "^12.0.1",
+    "fastify": "^5.12.8",
+    "fastify-plugin": "^6.0.1",
+    "fastify-type-provider-zod": "^7.0.0",
+    "govuk-frontend": "^5.14.0",
+    "nunjucks": "^3.2.4",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.2",
+    "@types/jsdom": "^30.0.0",
+    "@types/node": "^24.19.4",
+    "@types/nunjucks": "^3.2.6",
+    "eslint": "^10.15.0",
+    "jsdom": "^31.0.1",
+    "prettier": "^3.10.1",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.74.0",
+    "vitest": "^5.1.2"
+  }
+}
